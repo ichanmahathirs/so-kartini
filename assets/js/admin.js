@@ -20,6 +20,11 @@ const download = (name, text, type) => {
 
 // ---------- auth ----------
 
+async function isAdmin() {
+  const { data } = await sb.auth.getSession();
+  return data.session?.user?.app_metadata?.role === "admin";
+}
+
 $("loginBtn").onclick = async () => {
   const username = $("loginUser").value.trim().toLowerCase();
   const password = $("loginPass").value;
@@ -28,6 +33,11 @@ $("loginBtn").onclick = async () => {
   const { error } = await sb.auth.signInWithPassword({ email: `${username}@${EMAIL_DOMAIN}`, password });
   if (error) {
     $("loginError").textContent = "Gagal masuk: username/password salah.";
+    return;
+  }
+  if (!(await isAdmin())) {
+    await sb.auth.signOut();
+    $("loginError").textContent = "Akun ini bukan admin.";
     return;
   }
   showApp(true);
@@ -53,9 +63,26 @@ async function init() {
   } catch {
     $("masterSummary").textContent = "master.json belum ada di hosting — olah xlsx dulu.";
   }
-  const { data } = await sb.auth.getSession();
-  showApp(!!data.session);
+  showApp(await isAdmin());
 }
+
+// ---------- tambah akun karyawan ----------
+
+$("createUserBtn").onclick = async () => {
+  const username = $("newUser").value.trim().toLowerCase();
+  const password = $("newPass").value;
+  $("createUserMsg").textContent = "Membuat akun...";
+  const { data, error } = await sb.functions.invoke("create-employee", { body: { username, password } });
+  if (error) {
+    let detail = error.message;
+    try { detail = (await error.context.json()).error ?? detail; } catch {}
+    $("createUserMsg").textContent = `❌ ${detail}`;
+    return;
+  }
+  $("createUserMsg").textContent = `✅ Akun "${data.username}" jadi. Kasih username+password ke karyawannya, lalu tambahkan namanya ke Daftar karyawan di atas.`;
+  $("newUser").value = "";
+  $("newPass").value = "";
+};
 
 $("tabMasterBtn").onclick = () => setTab(true);
 $("tabGabungBtn").onclick = () => setTab(false);
