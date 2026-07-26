@@ -15,6 +15,7 @@
   <div class="row"><div><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"></div></div>
   <button id="loginBtn">Masuk</button>
   <p class="muted" id="loginError"></p>
+  <p class="muted">Halaman ini khusus akun admin.</p>
 </section>
 
 <section id="appView" class="hidden">
@@ -36,7 +37,15 @@
     <input id="racksInput" placeholder="rack1, rack2, gudang, etalase">
     <strong>Daftar karyawan</strong> (nama tampilan, pisahkan dengan koma)
     <input id="employeesInput" placeholder="Ani, Budi, Kristian">
-    <p class="muted">Akun login karyawan dibuat di dashboard Supabase → Authentication → Add user (email: username@so-kartini.local).</p>
+  </div>
+  <div class="card">
+    <strong>3. Tambah akun karyawan</strong>
+    <div class="row">
+      <div><label>Username (huruf kecil, tanpa spasi)</label><input id="newUser" autocapitalize="none"></div>
+      <div><label>Password (min 6)</label><input id="newPass" type="text"></div>
+    </div>
+    <button id="createUserBtn">➕ Buat Akun</button>
+    <p class="muted" id="createUserMsg"></p>
   </div>
   <div class="card">
     <button id="downloadMasterBtn">Download master.json</button>
