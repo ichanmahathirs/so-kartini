@@ -105,7 +105,12 @@ $("xlsxInput").onchange = async () => {
     alert(`Sheet "Bahan Resep (auto)" tidak ada di file ini. Sheet tersedia: ${wb.SheetNames.join(", ")}`);
     return;
   }
-  const { products, warnings } = buildMaster(XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true }));
+  const tSheet = wb.Sheets["template baru (auto)"];
+  if (!tSheet) alert('Sheet "template baru (auto)" tidak ada — kolom sku akan kosong.');
+  const { products, warnings } = buildMaster(
+    XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true }),
+    tSheet ? XLSX.utils.sheet_to_json(tSheet, { header: 1, raw: true }) : undefined
+  );
   master = {
     version: new Date().toISOString().slice(0, 16),
     source: f.name,

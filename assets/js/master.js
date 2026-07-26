@@ -1,8 +1,21 @@
-export function buildMaster(resepRows) {
+export function buildMaster(resepRows, templateRows) {
   const [header, ...data] = resepRows;
   const col = Object.fromEntries(header.map((h, i) => [h, i]));
   for (const need of ["product_name", "product_variant_name", "qty"]) {
     if (!(need in col)) throw new Error(`Kolom hilang di Bahan Resep: ${need}`);
+  }
+  const skuOf = new Map(); // "nama|varian" -> sku, dari sheet template baru (auto)
+  if (templateRows?.length) {
+    const [thead, ...tdata] = templateRows;
+    const tcol = Object.fromEntries(thead.map((h, i) => [h, i]));
+    if ("name" in tcol && "variant_names" in tcol && "sku" in tcol) {
+      for (const r of tdata) {
+        const n = String(r[tcol.name] ?? "").trim();
+        const v = String(r[tcol.variant_names] ?? "").trim();
+        const s = String(r[tcol.sku] ?? "").trim();
+        if (n && s) skuOf.set(`${n}|${v}`, s);
+      }
+    }
   }
   const byName = new Map();
   for (const r of data) {
@@ -11,7 +24,7 @@ export function buildMaster(resepRows) {
     const label = String(r[col.product_variant_name] ?? "").trim();
     const factor = Number(r[col.qty]);
     if (!byName.has(name)) byName.set(name, []);
-    byName.get(name).push({ label, factor });
+    byName.get(name).push({ label, factor, sku: skuOf.get(`${name}|${label}`) ?? "" });
   }
   const products = [];
   const warnings = [];
@@ -26,7 +39,7 @@ export function buildMaster(resepRows) {
       continue;
     }
     variants.sort((a, b) => b.factor - a.factor);
-    products.push({ name, baseVariant: bases[0].label, variants });
+    products.push({ name, baseVariant: bases[0].label, baseSku: bases[0].sku, variants });
   }
   products.sort((a, b) => a.name.localeCompare(b.name, "id"));
   return { products, warnings };

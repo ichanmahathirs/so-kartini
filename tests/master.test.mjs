@@ -21,6 +21,34 @@ test("kelompokkan varian per produk, baseVariant = faktor 1, urut faktor desc", 
   assert.deepEqual(m.variants.map((v) => v.factor), [60, 4, 1]);
 });
 
+const THDR = ["name", "variant_names", "sku"];
+const trow = (name, label, sku) => [name, label, sku];
+
+test("templateRows mengisi sku per varian + baseSku produk", () => {
+  const { products } = buildMaster(
+    [
+      HDR,
+      row("Mentega Amanda Kuning 15kg", "250gr", "1"),
+      row("Mentega Amanda Kuning 15kg", "Krtn (15 Kg)", "60"),
+    ],
+    [
+      THDR,
+      trow("Mentega Amanda Kuning 15kg", "250gr", "BHK-0111-3"),
+      trow("Mentega Amanda Kuning 15kg", "Krtn (15 Kg)", "BHK-0111-G"),
+      trow("STOK Mentega Amanda Kuning 15kg", "", ""),
+    ]
+  );
+  const m = products[0];
+  assert.equal(m.baseSku, "BHK-0111-3");
+  assert.equal(m.variants.find((v) => v.label === "Krtn (15 Kg)").sku, "BHK-0111-G");
+});
+
+test("tanpa templateRows: sku kosong, tetap jalan", () => {
+  const { products } = buildMaster([HDR, row("Ok", "Pcs", "1")]);
+  assert.equal(products[0].baseSku, "");
+  assert.equal(products[0].variants[0].sku, "");
+});
+
 test("produk tanpa varian faktor 1 → warning, tidak masuk products", () => {
   const { products, warnings } = buildMaster([HDR, row("Aneh", "Krtn", "12")]);
   assert.equal(products.length, 0);
