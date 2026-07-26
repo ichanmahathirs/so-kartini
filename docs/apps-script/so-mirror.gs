@@ -7,7 +7,7 @@
 const SUPABASE_URL = "https://agpsjjddzqrnrrhswday.supabase.co";
 const API_KEY = "sb_publishable_ddi33tia1fcqmtrmbt9MPQ_PyZ__g7v";
 const EXPORT_SECRET = "GANTI-DENGAN-SECRET-DARI-app_secrets";
-const MASTER_URL = "https://ichanmahathirs.github.io/so-kartini/master.json";
+const MASTER_URL = "https://ichanmahathirs.github.io/Toko-Kartini-SO/master.json";
 const JAM_SO = "20:00"; // kolom time di tab Olsera
 
 function refreshAll() {
