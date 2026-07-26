@@ -10,8 +10,20 @@
 <body>
 <h1>📦 Stok Opname Kartini <span id="masterVersion" class="muted"></span></h1>
 
-<section id="setupView" class="card">
-  <div class="row"><div><label>Nama kamu</label><select id="employeeSelect"></select></div></div>
+<section id="loginView" class="card hidden">
+  <strong>Masuk</strong>
+  <div class="row"><div><label>Username</label><input id="loginUser" autocomplete="username" autocapitalize="none"></div></div>
+  <div class="row"><div><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"></div></div>
+  <button id="loginBtn">Masuk</button>
+  <p class="muted" id="loginError"></p>
+  <p class="muted">Belum punya akun? Minta dibuatkan admin.</p>
+</section>
+
+<section id="setupView" class="card hidden">
+  <div class="row">
+    <span>Halo, <b id="whoami"></b></span>
+    <button id="logoutBtn" class="secondary">Keluar</button>
+  </div>
   <div class="row"><div><label>Rak yang dihitung</label><select id="rackSelect"></select></div></div>
   <button id="startBtn">Mulai Hitung</button>
 </section>
@@ -23,6 +35,7 @@
       <span class="badge" id="itemCount">0 item</span>
       <button id="changeRackBtn" class="secondary">Ganti Rak</button>
     </div>
+    <div class="row"><span id="syncStatus" class="muted"></span></div>
     <label>Cari produk</label>
     <input id="searchInput" placeholder="ketik nama produk..." autocomplete="off">
     <div id="searchResults"></div>
@@ -43,11 +56,12 @@
   <div class="card">
     <strong>Hasil rak ini</strong>
     <div class="result" id="resultList"></div>
-    <button id="exportBtn">Selesai Rak — Kirim Hasil</button>
-    <button id="resetBtn" class="danger">SO Baru (hapus semua data)</button>
+    <button id="exportBtn" class="secondary">Cadangan: Export File (darurat)</button>
+    <button id="resetBtn" class="danger">SO Baru (bersihkan HP ini)</button>
   </div>
 </section>
 
+<script src="assets/vendor/supabase.js"></script>
 <script type="module" src="assets/js/employee.js"></script>
 <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
 </body>

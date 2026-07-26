@@ -8,9 +8,20 @@
 </head>
 <body>
 <h1>🛠️ Admin SO Kartini</h1>
+
+<section id="loginView" class="card hidden">
+  <strong>Masuk (admin)</strong>
+  <div class="row"><div><label>Username</label><input id="loginUser" autocomplete="username" autocapitalize="none"></div></div>
+  <div class="row"><div><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"></div></div>
+  <button id="loginBtn">Masuk</button>
+  <p class="muted" id="loginError"></p>
+</section>
+
+<section id="appView" class="hidden">
 <div class="row">
   <button id="tabMasterBtn">Master</button>
   <button id="tabGabungBtn" class="secondary">Gabung</button>
+  <button id="logoutBtn" class="secondary">Keluar</button>
 </div>
 
 <section id="masterTab">
@@ -23,8 +34,9 @@
   <div class="card">
     <strong>2. Daftar rak</strong> (pisahkan dengan koma)
     <input id="racksInput" placeholder="rack1, rack2, gudang, etalase">
-    <strong>Daftar karyawan</strong> (pisahkan dengan koma)
+    <strong>Daftar karyawan</strong> (nama tampilan, pisahkan dengan koma)
     <input id="employeesInput" placeholder="Ani, Budi, Kristian">
+    <p class="muted">Akun login karyawan dibuat di dashboard Supabase → Authentication → Add user (email: username@so-kartini.local).</p>
   </div>
   <div class="card">
     <button id="downloadMasterBtn">Download master.json</button>
@@ -34,7 +46,12 @@
 
 <section id="gabungTab" class="hidden">
   <div class="card">
-    <strong>1. Upload semua file hasil dari HP karyawan</strong>
+    <strong>1. Ambil hasil dari database pusat</strong>
+    <div class="row">
+      <div><label>Tanggal SO</label><input type="date" id="dbDate"></div>
+      <button id="fetchDbBtn">🔄 Muat dari Pusat</button>
+    </div>
+    <p class="muted">Atau fallback darurat — upload file export dari HP:</p>
     <input type="file" id="resultsInput" accept=".json" multiple>
     <div id="mergeReport"></div>
   </div>
@@ -44,8 +61,10 @@
     <button id="downloadCsvBtn" disabled>Download CSV Olsera</button>
   </div>
 </section>
+</section>
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
+<script src="assets/vendor/supabase.js"></script>
 <script type="module" src="assets/js/admin.js"></script>
 </body>
 </html>

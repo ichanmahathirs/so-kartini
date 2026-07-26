@@ -1,4 +1,4 @@
-const CACHE = "so-kartini-v2"; // naikkan angka tiap deploy yang mengubah file
+const CACHE = "so-kartini-v3"; // naikkan angka tiap deploy yang mengubah file
 const ASSETS = [
   "./",
   "index.html",
@@ -13,7 +13,10 @@ const ASSETS = [
   "assets/js/store.js",
   "assets/js/employee.js",
   "assets/js/admin.js",
+  "assets/js/cloud.js",
+  "assets/js/config.js",
   "assets/vendor/xlsx.full.min.js",
+  "assets/vendor/supabase.js",
   "assets/icon-192.png",
   "assets/icon-512.png",
 ];
