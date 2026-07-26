@@ -30,7 +30,8 @@ $("loginBtn").onclick = async () => {
   const password = $("loginPass").value;
   if (!username || !password) return;
   $("loginError").textContent = "";
-  const { error } = await sb.auth.signInWithPassword({ email: `${username}@${EMAIL_DOMAIN}`, password });
+  const email = username.includes("@") ? username : `${username}@${EMAIL_DOMAIN}`;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
     $("loginError").textContent = "Gagal masuk: username/password salah.";
     return;

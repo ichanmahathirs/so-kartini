@@ -1,4 +1,4 @@
-const CACHE = "so-kartini-v4"; // naikkan angka tiap deploy yang mengubah file
+const CACHE = "so-kartini-v5"; // naikkan angka tiap deploy yang mengubah file
 const ASSETS = [
   "./",
   "index.html",

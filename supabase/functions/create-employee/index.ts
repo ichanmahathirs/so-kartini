@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
       email: `${username}@so-kartini.local`,
       password,
       email_confirm: true,
+      user_metadata: { display_name: username },
     });
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true, username });
