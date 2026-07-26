@@ -263,35 +263,18 @@ $("entryCancelBtn").onclick = () => {
   current = null;
 };
 
-$("exportBtn").onclick = async () => {
-  const s = session();
-  const data = store.exportRack(s.rack, {
-    masterVersion: master.version,
-    employee: me.name,
-    exportedAt: new Date().toISOString(),
-  });
-  if (!data.items.length && !data.notes.length) {
-    alert("Belum ada item di rak ini.");
+$("uploadBtn").onclick = async () => {
+  $("uploadBtn").disabled = true;
+  $("uploadBtn").textContent = "⏳ Mengirim...";
+  await sync();
+  $("uploadBtn").disabled = false;
+  $("uploadBtn").textContent = "⬆️ Upload";
+  const n = outbox.pending().count;
+  if (n > 0) {
+    alert(`Masih ada ${n} data belum terkirim (sinyal?). Data AMAN di HP — coba Upload lagi nanti.`);
     return;
   }
-  const name = `SO_${s.rack}_${me.name}_${new Date().toISOString().slice(0, 10)}.json`.replace(/\s+/g, "-");
-  const file = new File([JSON.stringify(data, null, 1)], name, { type: "application/json" });
-  if (navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file], title: name }).catch(() => {});
-  } else {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(file);
-    a.download = name;
-    a.click();
-  }
-};
-
-$("resetBtn").onclick = () => {
-  if (outbox.pending().count > 0) {
-    alert("Masih ada data belum tersinkron. Tunggu ✓ dulu.");
-    return;
-  }
-  if (confirm("Bersihkan data hitungan di HP ini? (Data di pusat TIDAK terhapus)") && confirm("Yakin?")) {
+  if (confirm("✓ Semua hasil sudah terkirim ke pusat.\n\nBersihkan HP ini untuk hitungan berikutnya? (Data di pusat TIDAK terhapus)")) {
     store.clearAll();
     location.reload();
   }
