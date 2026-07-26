@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SO Kartini</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<h1>📦 Stok Opname Kartini <span id="masterVersion" class="muted"></span></h1>
+
+<section id="setupView" class="card">
+  <div class="row"><div><label>Nama kamu</label><select id="employeeSelect"></select></div></div>
+  <div class="row"><div><label>Rak yang dihitung</label><select id="rackSelect"></select></div></div>
+  <button id="startBtn">Mulai Hitung</button>
+</section>
+
+<section id="countView" class="hidden">
+  <div class="card">
+    <div class="row">
+      <span id="sessionInfo"></span>
+      <span class="badge" id="itemCount">0 item</span>
+      <button id="changeRackBtn" class="secondary">Ganti Rak</button>
+    </div>
+    <label>Cari produk</label>
+    <input id="searchInput" placeholder="ketik nama produk..." autocomplete="off">
+    <div id="searchResults"></div>
+    <button id="manualBtn" class="secondary hidden">+ Catat manual (tidak ada di daftar)</button>
+  </div>
+
+  <div class="card hidden" id="entryCard">
+    <strong id="entryProduct"></strong>
+    <div id="variantInputs"></div>
+    <div class="row"><div><label>Tanggal ED (opsional)</label><input type="date" id="entryEd"></div></div>
+    <div class="total" id="entryTotal">0</div>
+    <div class="row">
+      <button id="entrySaveBtn">Simpan</button>
+      <button id="entryCancelBtn" class="secondary">Batal</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>Hasil rak ini</strong>
+    <div class="result" id="resultList"></div>
+    <button id="exportBtn">Selesai Rak — Kirim Hasil</button>
+    <button id="resetBtn" class="danger">SO Baru (hapus semua data)</button>
+  </div>
+</section>
+
+<script type="module" src="assets/js/employee.js"></script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
+</body>
+</html>
