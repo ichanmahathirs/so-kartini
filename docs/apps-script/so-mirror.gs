@@ -15,9 +15,13 @@ function refreshAll() {
   const notes = rpc("so_export_notes");
   const master = JSON.parse(UrlFetchApp.fetch(MASTER_URL).getContentText());
   const baseOf = {};
-  master.products.forEach(function (p) { baseOf[p.name] = p.baseVariant; });
+  const skuOf = {};
+  master.products.forEach(function (p) {
+    baseOf[p.name] = p.baseVariant;
+    skuOf[p.name] = p.baseSku || "";
+  });
   writeRaw(items, notes);
-  writeOlsera(items, baseOf);
+  writeOlsera(items, baseOf, skuOf);
 }
 
 function rpc(fn) {
@@ -42,7 +46,7 @@ function writeRaw(items, notes) {
   tulis("Data Mentah", head, rows);
 }
 
-function writeOlsera(items, baseOf) {
+function writeOlsera(items, baseOf, skuOf) {
   const map = {};
   items.forEach(function (i) {
     const k = i.rack + "|" + i.product;
@@ -53,7 +57,7 @@ function writeOlsera(items, baseOf) {
   const head = ["time", "product", "variant", "sku", "qty", "rack", "expired_date"];
   const rows = Object.keys(map).map(function (k) {
     const r = map[k];
-    return [JAM_SO, r.product, baseOf[r.product] || "??", "", r.qty, r.rack, r.ed];
+    return [JAM_SO, r.product, baseOf[r.product] || "??", skuOf[r.product] || "", r.qty, r.rack, r.ed];
   });
   tulis("Olsera", head, rows);
 }

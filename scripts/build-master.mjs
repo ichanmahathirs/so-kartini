@@ -27,7 +27,10 @@ if (!sheet) {
   process.exit(1);
 }
 const resepRows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
-const { products, warnings } = buildMaster(resepRows);
+const tSheet = wb.Sheets["template baru (auto)"];
+const templateRows = tSheet ? XLSX.utils.sheet_to_json(tSheet, { header: 1, raw: true }) : undefined;
+if (!tSheet) console.warn('Peringatan: sheet "template baru (auto)" tidak ada — kolom sku akan kosong.');
+const { products, warnings } = buildMaster(resepRows, templateRows);
 
 const splitList = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
 const master = {

@@ -5,7 +5,7 @@ import { buildCsv } from "../assets/js/csv.js";
 test("format persis template Olsera (quote semua, LF, trailing newline)", () => {
   const out = buildCsv(
     [
-      { product: "My product 3", variant: "yellow,xl", qty: 10, rack: "rack1", expiredDate: "2026-07-26" },
+      { product: "My product 3", variant: "yellow,xl", sku: "ABC-0001-3", qty: 10, rack: "rack1", expiredDate: "2026-07-26" },
       { product: "My iPad Case", variant: "Merah", qty: 1, rack: "rack3", expiredDate: "" },
     ],
     "20:00"
@@ -13,7 +13,7 @@ test("format persis template Olsera (quote semua, LF, trailing newline)", () => 
   assert.equal(
     out,
     '"time","product","variant","sku","qty","rack","expired_date"\n' +
-      '"20:00","My product 3","yellow,xl","","10","rack1","2026-07-26"\n' +
+      '"20:00","My product 3","yellow,xl","ABC-0001-3","10","rack1","2026-07-26"\n' +
       '"20:00","My iPad Case","Merah","","1","rack3",""\n'
   );
 });

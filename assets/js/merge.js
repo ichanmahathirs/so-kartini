@@ -1,5 +1,6 @@
 export function mergeResults(files, master, resolutions = {}) {
   const baseOf = new Map(master.products.map((p) => [p.name, p.baseVariant]));
+  const skuOf = new Map(master.products.map((p) => [p.name, p.baseSku ?? ""]));
   const rows = new Map();
   const duplicates = [];
   const unknownProducts = [];
@@ -19,7 +20,7 @@ export function mergeResults(files, master, resolutions = {}) {
         continue;
       }
       const key = `${item.product}|${f.rack}`;
-      const row = { product: item.product, variant: baseOf.get(item.product), qty: item.qtyBase, rack: f.rack, expiredDate: item.expiredDate ?? "" };
+      const row = { product: item.product, variant: baseOf.get(item.product), sku: skuOf.get(item.product), qty: item.qtyBase, rack: f.rack, expiredDate: item.expiredDate ?? "" };
       if (rows.has(key)) {
         const how = resolutions[key];
         if (how === "sum") rows.get(key).qty = Math.round((rows.get(key).qty + row.qty) * 1000) / 1000;

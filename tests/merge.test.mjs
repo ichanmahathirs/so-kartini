@@ -6,8 +6,8 @@ const MASTER = {
   version: "v1",
   racks: ["rack1", "rack2"],
   products: [
-    { name: "Mentega", baseVariant: "250gr", variants: [] },
-    { name: "Cup", baseVariant: "Pcs", variants: [] },
+    { name: "Mentega", baseVariant: "250gr", baseSku: "BHK-0111-3", variants: [] },
+    { name: "Cup", baseVariant: "Pcs", baseSku: "PCU-0004-3", variants: [] },
   ],
 };
 const file = (employee, rack, items, extra = {}) => ({ masterVersion: "v1", employee, rack, items, notes: [], ...extra });
@@ -21,8 +21,8 @@ test("gabung normal: baris pakai baseVariant, rekap per rak/karyawan", () => {
     MASTER
   );
   assert.deepEqual(r.rows, [
-    { product: "Mentega", variant: "250gr", qty: 137, rack: "rack1", expiredDate: "2027-01-15" },
-    { product: "Cup", variant: "Pcs", qty: 10, rack: "rack2", expiredDate: "" },
+    { product: "Mentega", variant: "250gr", sku: "BHK-0111-3", qty: 137, rack: "rack1", expiredDate: "2027-01-15" },
+    { product: "Cup", variant: "Pcs", sku: "PCU-0004-3", qty: 10, rack: "rack2", expiredDate: "" },
   ]);
   assert.equal(r.duplicates.length, 0);
   assert.deepEqual(r.rackCoverage, [{ rack: "rack1", counted: true }, { rack: "rack2", counted: true }]);
