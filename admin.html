@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SO Kartini — Admin</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<h1>🛠️ Admin SO Kartini</h1>
+<div class="row">
+  <button id="tabMasterBtn">Master</button>
+  <button id="tabGabungBtn" class="secondary">Gabung</button>
+</div>
+
+<section id="masterTab">
+  <div class="card">
+    <strong>1. Olah file export Olsera (xlsx)</strong>
+    <p class="muted">Butuh sheet "Bahan Resep (auto)". File TIDAK diupload ke mana-mana, diolah di browser ini.</p>
+    <input type="file" id="xlsxInput" accept=".xlsx">
+    <div id="masterSummary" class="muted"></div>
+  </div>
+  <div class="card">
+    <strong>2. Daftar rak</strong> (pisahkan dengan koma)
+    <input id="racksInput" placeholder="rack1, rack2, gudang, etalase">
+    <strong>Daftar karyawan</strong> (pisahkan dengan koma)
+    <input id="employeesInput" placeholder="Ani, Budi, Kristian">
+  </div>
+  <div class="card">
+    <button id="downloadMasterBtn">Download master.json</button>
+    <p class="muted">Kirim file ini untuk di-deploy (ganti master.json di repo), supaya semua HP dapat daftar terbaru.</p>
+  </div>
+</section>
+
+<section id="gabungTab" class="hidden">
+  <div class="card">
+    <strong>1. Upload semua file hasil dari HP karyawan</strong>
+    <input type="file" id="resultsInput" accept=".json" multiple>
+    <div id="mergeReport"></div>
+  </div>
+  <div class="card">
+    <strong>2. Jam SO</strong>
+    <input type="time" id="soTime" value="20:00">
+    <button id="downloadCsvBtn" disabled>Download CSV Olsera</button>
+  </div>
+</section>
+
+<script src="assets/vendor/xlsx.full.min.js"></script>
+<script type="module" src="assets/js/admin.js"></script>
+</body>
+</html>
