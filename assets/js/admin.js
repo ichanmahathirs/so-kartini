@@ -1,10 +1,13 @@
 import { buildMaster } from "./master.js";
 import { mergeResults } from "./merge.js";
 import { buildCsv } from "./csv.js";
+import { rowsToFiles } from "./cloud.js";
+import { SUPABASE_URL, SUPABASE_KEY, EMAIL_DOMAIN } from "./config.js";
 
 const $ = (id) => document.getElementById(id);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let master = null; // master aktif (dari hosting atau hasil olah baru)
-let mergedFiles = []; // file hasil yang sudah diparse
+let mergedFiles = []; // bentuk "file hasil" (dari DB atau upload)
 let resolutions = {};
 
 const splitList = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
@@ -15,7 +18,33 @@ const download = (name, text, type) => {
   a.click();
 };
 
+// ---------- auth ----------
+
+$("loginBtn").onclick = async () => {
+  const username = $("loginUser").value.trim().toLowerCase();
+  const password = $("loginPass").value;
+  if (!username || !password) return;
+  $("loginError").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: `${username}@${EMAIL_DOMAIN}`, password });
+  if (error) {
+    $("loginError").textContent = "Gagal masuk: username/password salah.";
+    return;
+  }
+  showApp(true);
+};
+
+$("logoutBtn").onclick = async () => {
+  await sb.auth.signOut();
+  showApp(false);
+};
+
+function showApp(loggedIn) {
+  $("loginView").classList.toggle("hidden", loggedIn);
+  $("appView").classList.toggle("hidden", !loggedIn);
+}
+
 async function init() {
+  $("dbDate").value = new Date().toISOString().slice(0, 10);
   try {
     master = await (await fetch("master.json", { cache: "no-cache" })).json();
     $("racksInput").value = master.racks.join(", ");
@@ -24,6 +53,8 @@ async function init() {
   } catch {
     $("masterSummary").textContent = "master.json belum ada di hosting — olah xlsx dulu.";
   }
+  const { data } = await sb.auth.getSession();
+  showApp(!!data.session);
 }
 
 $("tabMasterBtn").onclick = () => setTab(true);
@@ -34,6 +65,8 @@ function setTab(m) {
   $("tabMasterBtn").className = m ? "" : "secondary";
   $("tabGabungBtn").className = m ? "secondary" : "";
 }
+
+// ---------- tab Master ----------
 
 $("xlsxInput").onchange = async () => {
   const f = $("xlsxInput").files[0];
@@ -69,6 +102,27 @@ $("downloadMasterBtn").onclick = () => {
   download("master.json", JSON.stringify(master, null, 1), "application/json");
 };
 
+// ---------- tab Gabung ----------
+
+$("fetchDbBtn").onclick = async () => {
+  const d = $("dbDate").value;
+  if (!d) return;
+  const from = `${d}T00:00:00`;
+  const to = `${d}T23:59:59`;
+  $("mergeReport").textContent = "Memuat dari pusat...";
+  const [items, notes] = await Promise.all([
+    sb.from("so_items").select("*").gte("created_at", from).lte("created_at", to).order("created_at"),
+    sb.from("so_notes").select("*").gte("created_at", from).lte("created_at", to).order("created_at"),
+  ]);
+  if (items.error || notes.error) {
+    $("mergeReport").textContent = `Gagal memuat: ${(items.error ?? notes.error).message}`;
+    return;
+  }
+  mergedFiles = rowsToFiles(items.data, notes.data);
+  resolutions = {};
+  renderMerge(`dari database (${items.data.length} item, tanggal ${d})`);
+};
+
 $("resultsInput").onchange = async () => {
   mergedFiles = [];
   resolutions = {};
@@ -81,17 +135,17 @@ $("resultsInput").onchange = async () => {
       alert(`File ${f.name} dilewati: ${e.message}`);
     }
   }
-  renderMerge();
+  renderMerge(`dari ${$("resultsInput").files.length} file upload`);
 };
 
-function renderMerge() {
+function renderMerge(sourceLabel) {
   if (!master) {
     $("mergeReport").textContent = "Master belum termuat.";
     return;
   }
   const r = mergeResults(mergedFiles, master, resolutions);
   const cov = r.rackCoverage.filter((x) => !x.counted).map((x) => x.rack);
-  let html = `<p><b>${r.rows.length} baris</b> dari ${mergedFiles.length} file.</p>`;
+  let html = `<p><b>${r.rows.length} baris</b> ${sourceLabel}.</p>`;
   html += `<p>Per rak: ${Object.entries(r.perRack).map(([k, v]) => `${k}=${v}`).join(", ") || "-"}<br>`;
   html += `Per karyawan: ${Object.entries(r.perEmployee).map(([k, v]) => `${k}=${v}`).join(", ") || "-"}</p>`;
   if (cov.length) html += `<p>⚠️ Rak belum ada hasil: <b>${cov.join(", ")}</b></p>`;
@@ -101,7 +155,7 @@ function renderMerge() {
     html += `<p>⚠️ Produk tak dikenal (TIDAK masuk CSV): ${r.unknownProducts.map((u) => `${u.product} [${u.rack}]`).join(", ")}</p>`;
   if (r.notes.length) html += `<p>📝 Catatan manual:<br>${r.notes.map((n) => `• [${n.rack}/${n.employee}] ${n.text} (±${n.qty})`).join("<br>")}</p>`;
   for (const d of r.duplicates) {
-    html += `<p>⚠️ Duplikat <b>${d.product}</b> di ${d.rack}: ` +
+    html += `<p>⚠️ Duplikat <b>${d.product}</b> di ${d.rack} (beda karyawan): ` +
       `<button data-key="${encodeURIComponent(d.key)}" data-how="sum" class="secondary">Jumlahkan</button> ` +
       `<button data-key="${encodeURIComponent(d.key)}" data-how="last" class="secondary">Pakai terakhir</button></p>`;
   }
@@ -109,7 +163,7 @@ function renderMerge() {
   for (const b of $("mergeReport").querySelectorAll("button[data-key]")) {
     b.onclick = () => {
       resolutions[decodeURIComponent(b.dataset.key)] = b.dataset.how;
-      renderMerge();
+      renderMerge(sourceLabel);
     };
   }
   $("downloadCsvBtn").disabled = r.rows.length === 0 || r.duplicates.length > 0;

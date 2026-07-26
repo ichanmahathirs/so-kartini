@@ -1,10 +1,102 @@
 import { totalBase } from "./convert.js";
 import { createStore } from "./store.js";
+import { createOutbox } from "./cloud.js";
+import { SUPABASE_URL, SUPABASE_KEY, EMAIL_DOMAIN } from "./config.js";
 
 const $ = (id) => document.getElementById(id);
 const store = createStore(localStorage);
+const outbox = createOutbox(localStorage);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let master = null;
 let current = null; // produk yang sedang diinput
+let me = null; // { name }
+
+// ---------- sinkronisasi cloud ----------
+
+async function pushItem(it) {
+  if (it._delete) {
+    const { error } = await sb.from("so_items").delete().match({ rack: it.rack, product: it.product });
+    if (error) throw error;
+    return;
+  }
+  const { error } = await sb.from("so_items").upsert(
+    {
+      employee: me.name,
+      rack: it.rack,
+      product: it.product,
+      counts: it.counts,
+      qty_base: it.qtyBase,
+      expired_date: it.expiredDate || null,
+      master_version: master?.version ?? "",
+    },
+    { onConflict: "user_id,rack,product" }
+  );
+  if (error) throw error;
+}
+
+async function pushNote(n) {
+  const { error } = await sb.from("so_notes").insert({ employee: me.name, rack: n.rack, note: n.note, qty: n.qty ?? 0 });
+  if (error) throw error;
+}
+
+async function sync() {
+  if (!me) return;
+  await outbox.flush({ pushItem, pushNote });
+  renderSync();
+}
+
+function renderSync() {
+  const n = outbox.pending().count;
+  const el = $("syncStatus");
+  el.textContent = n === 0 ? "✓ tersinkron ke pusat" : `⏳ ${n} menunggu sinyal — jangan tutup dulu`;
+  el.style.color = n === 0 ? "#2e7d32" : "#b3261e";
+}
+
+function queue(op) {
+  outbox.enqueueItem(op);
+  sync();
+}
+
+window.addEventListener("online", sync);
+setInterval(sync, 30000);
+
+// ---------- auth ----------
+
+async function whoAmI() {
+  const { data } = await sb.auth.getSession();
+  const email = data.session?.user?.email;
+  return email ? { name: email.split("@")[0] } : null;
+}
+
+$("loginBtn").onclick = async () => {
+  const username = $("loginUser").value.trim().toLowerCase();
+  const password = $("loginPass").value;
+  if (!username || !password) return;
+  $("loginError").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: `${username}@${EMAIL_DOMAIN}`, password });
+  if (error) {
+    $("loginError").textContent = "Gagal masuk: username/password salah (atau belum ada sinyal).";
+    return;
+  }
+  me = await whoAmI();
+  show("setup");
+};
+
+$("logoutBtn").onclick = async () => {
+  if (outbox.pending().count > 0 && !confirm("Masih ada data belum tersinkron. Tetap keluar?")) return;
+  await sb.auth.signOut();
+  me = null;
+  show("login");
+};
+
+// ---------- tampilan ----------
+
+function show(view) {
+  $("loginView").classList.toggle("hidden", view !== "login");
+  $("setupView").classList.toggle("hidden", view !== "setup");
+  $("countView").classList.toggle("hidden", view !== "count");
+  if (view === "setup") $("whoami").textContent = me.name;
+}
 
 async function loadMaster() {
   try {
@@ -14,20 +106,26 @@ async function loadMaster() {
   } catch {
     const cached = localStorage.getItem("so-kartini-master");
     if (!cached) {
-      alert("Data master gagal dimuat dan belum ada salinan. Hubungi admin, butuh internet sekali.");
+      alert("Data master gagal dimuat dan belum ada salinan. Butuh internet sekali di HP ini.");
       return;
     }
     master = JSON.parse(cached);
   }
   $("masterVersion").textContent = `master ${master.version}`;
-  fillSelect($("employeeSelect"), master.employees);
   fillSelect($("rackSelect"), master.racks);
+  me = await whoAmI();
+  if (!me) {
+    show("login");
+    return;
+  }
   const s = store.getSession();
-  if (s) {
-    $("employeeSelect").value = s.employee;
+  if (s?.rack) {
     $("rackSelect").value = s.rack;
     showCount();
+  } else {
+    show("setup");
   }
+  sync();
 }
 
 function fillSelect(el, list) {
@@ -39,11 +137,11 @@ function session() {
 }
 
 function showCount() {
-  $("setupView").classList.add("hidden");
-  $("countView").classList.remove("hidden");
+  show("count");
   const s = session();
-  $("sessionInfo").textContent = `${s.employee} · ${s.rack}`;
+  $("sessionInfo").textContent = `${me.name} · ${s.rack}`;
   renderList();
+  renderSync();
 }
 
 function renderList() {
@@ -109,13 +207,10 @@ function updateTotal() {
 }
 
 $("startBtn").onclick = () => {
-  store.setSession({ employee: $("employeeSelect").value, rack: $("rackSelect").value });
+  store.setSession({ employee: me.name, rack: $("rackSelect").value });
   showCount();
 };
-$("changeRackBtn").onclick = () => {
-  $("countView").classList.add("hidden");
-  $("setupView").classList.remove("hidden");
-};
+$("changeRackBtn").onclick = () => show("setup");
 
 $("searchInput").oninput = () => {
   const hits = search($("searchInput").value);
@@ -129,6 +224,8 @@ $("manualBtn").onclick = () => {
   if (!text) return;
   const qty = Number(prompt("Perkiraan jumlah (angka saja):", "1")) || 0;
   store.addNote(session().rack, { text, qty });
+  outbox.enqueueNote({ rack: session().rack, note: text, qty });
+  sync();
   $("searchInput").value = "";
   $("searchResults").innerHTML = "";
   renderList();
@@ -147,14 +244,18 @@ $("entrySaveBtn").onclick = () => {
     const prev = store.listItems(s.rack).find((x) => x.product === current.name);
     if (!confirm(`${current.name} sudah tercatat ${prev.qtyBase} di ${s.rack}. Timpa dengan ${qtyBase}?`)) return;
   }
-  store.saveItem(s.rack, { product: current.name, counts: readCounts(), qtyBase, expiredDate: $("entryEd").value });
+  const item = { product: current.name, counts: readCounts(), qtyBase, expiredDate: $("entryEd").value, rack: s.rack };
+  store.saveItem(s.rack, item);
+  queue(item);
   $("entryCard").classList.add("hidden");
   current = null;
   renderList();
 };
 $("entryCancelBtn").onclick = () => {
-  if (current && store.hasItem(session().rack, current.name) && confirm(`Hapus ${current.name} dari daftar?`)) {
-    store.removeItem(session().rack, current.name);
+  const s = session();
+  if (current && store.hasItem(s.rack, current.name) && confirm(`Hapus ${current.name} dari daftar?`)) {
+    store.removeItem(s.rack, current.name);
+    queue({ product: current.name, rack: s.rack, _delete: true });
     renderList();
   }
   $("entryCard").classList.add("hidden");
@@ -165,14 +266,14 @@ $("exportBtn").onclick = async () => {
   const s = session();
   const data = store.exportRack(s.rack, {
     masterVersion: master.version,
-    employee: s.employee,
+    employee: me.name,
     exportedAt: new Date().toISOString(),
   });
   if (!data.items.length && !data.notes.length) {
     alert("Belum ada item di rak ini.");
     return;
   }
-  const name = `SO_${s.rack}_${s.employee}_${new Date().toISOString().slice(0, 10)}.json`.replace(/\s+/g, "-");
+  const name = `SO_${s.rack}_${me.name}_${new Date().toISOString().slice(0, 10)}.json`.replace(/\s+/g, "-");
   const file = new File([JSON.stringify(data, null, 1)], name, { type: "application/json" });
   if (navigator.canShare?.({ files: [file] })) {
     await navigator.share({ files: [file], title: name }).catch(() => {});
@@ -185,7 +286,11 @@ $("exportBtn").onclick = async () => {
 };
 
 $("resetBtn").onclick = () => {
-  if (confirm("Hapus SEMUA data hitungan di HP ini?") && confirm("Yakin? Data yang belum dikirim akan hilang.")) {
+  if (outbox.pending().count > 0) {
+    alert("Masih ada data belum tersinkron. Tunggu ✓ dulu.");
+    return;
+  }
+  if (confirm("Bersihkan data hitungan di HP ini? (Data di pusat TIDAK terhapus)") && confirm("Yakin?")) {
     store.clearAll();
     location.reload();
   }
